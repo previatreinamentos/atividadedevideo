@@ -188,19 +188,29 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      user-select: none;
+    }
+
+    /* Estilização Drag and Drop */
+    .drag-item {
+      cursor: grab;
+      transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
+    }
+    .drag-item:active {
+      cursor: grabbing;
+    }
+    .drag-item.dragging {
+      opacity: 0.5;
+      background: #1a73e8;
+      border-color: #4285f4;
+    }
+    .drag-handle {
+      margin-left: 10px;
+      color: #9aa0a6;
+      font-size: 18px;
     }
 
     .quiz-btn:hover { background: #4d5156; }
-
-    .order-controls button {
-      background: #5f6368;
-      border: none;
-      color: white;
-      padding: 4px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-left: 5px;
-    }
 
     .feedback {
       padding: 12px;
@@ -244,13 +254,13 @@
         <label for="quizType">Tipo de Dinâmica:</label>
         <select id="quizType" onchange="renderOptionsForm()">
           <option value="choice">Múltipla Escolha (1 Opção Correta)</option>
-          <option value="order">Ordenar Sequência (Colocar em Ordem Correta)</option>
+          <option value="order">Ordenar Sequência (Arrastar na Ordem Correta)</option>
         </select>
       </div>
 
       <div class="form-group">
         <label for="questionText">Pergunta / Instrução:</label>
-        <input type="text" id="questionText" placeholder="Ex: Coloque os passos abaixo na ordem certa:">
+        <input type="text" id="questionText" placeholder="Ex: Arraste os passos abaixo para a ordem correta:">
       </div>
 
       <div class="form-group">
@@ -259,7 +269,7 @@
         <button type="button" class="btn btn-secondary" onclick="addOptionInput()">+ Adicionar Opção</button>
       </div>
 
-      <!-- Novos Campos de Feedback -->
+      <!-- Campos de Feedback -->
       <div class="form-group" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
         <label for="correctFeedback" style="color: #137333;">Mensagem para Resposta Correta:</label>
         <input type="text" id="correctFeedback" placeholder="Ex: ✨ Parabéns! Você acertou.">
@@ -315,7 +325,7 @@
       renderOptionsForm();
       loadDataFromStorage();
       
-      // Abre direto na Tela do Aluno ao carregar/recarregar
+      // Sempre força o carregamento direto na Tela do Aluno
       switchScreen('student');
     };
 
@@ -422,7 +432,7 @@
       }
     }
 
-    // SALVAR INTERAÇÕES
+    // SALVAR INTERAÇÕES (Múltiplas Atividades)
     function saveInteraction() {
       const time = parseInt(document.getElementById('pauseTime').value);
       const type = document.getElementById('quizType').value;
@@ -460,6 +470,7 @@
 
       if (options.length < 2) return alert('Insira pelo menos 2 opções!');
 
+      // Adiciona a nova interação à lista existente
       interactions.push({
         id: Date.now(),
         time: time,
@@ -472,13 +483,14 @@
         triggered: false
       });
 
+      // Ordena a lista de atividades pelo tempo (segundos do vídeo)
       interactions.sort((a, b) => a.time - b.time);
 
       saveDataToStorage();
       updateInteractionsList();
       alert('Dinâmica salva com sucesso!');
       
-      // Limpeza de formulário
+      // Limpeza de campos
       document.getElementById('pauseTime').value = '';
       document.getElementById('questionText').value = '';
       document.getElementById('correctFeedback').value = '';
@@ -499,7 +511,7 @@
         div.className = 'interaction-card';
         div.innerHTML = `
           <div>
-            <strong>⏱️ ${item.time}s</strong> - [${item.type === 'choice' ? 'Múltipla Escolha' : 'Ordenar'}] ${item.question}
+            <strong>⏱️ ${item.time}s</strong> - [${item.type === 'choice' ? 'Múltipla Escolha' : 'Ordenar (Arrastar)'}] ${item.question}
           </div>
           <button class="btn btn-danger" style="width:auto; margin:0;" onclick="removeInteraction(${item.id})">Excluir</button>
         `;
@@ -577,8 +589,7 @@
       }
     }
 
-    // EXIBIR QUIZ PARA O ALUNO
-    let studentOrderState = [];
+    // EXIBIR QUIZ PARA O ALUNO (COM DRAG AND DROP)
     let selectedChoiceId = null;
 
     function showQuizOverlay(data) {
@@ -604,43 +615,72 @@
           optionsBox.appendChild(btn);
         });
       } else {
-        studentOrderState = [...data.options].sort(() => Math.random() - 0.5);
-        renderOrderList();
+        // EMBARALHAR opções para ordenação
+        const shuffled = [...data.options].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach(opt => {
+          const item = document.createElement('div');
+          item.className = 'quiz-btn drag-item';
+          item.setAttribute('draggable', 'true');
+          item.dataset.id = opt.id;
+          item.innerHTML = `
+            <span>${opt.text}</span>
+            <span class="drag-handle">☰</span>
+          `;
+          optionsBox.appendChild(item);
+        });
+
+        setupDragAndDrop(optionsBox);
       }
 
       document.getElementById('quizOverlay').classList.remove('hidden');
     }
 
-    function renderOrderList() {
-      const optionsBox = document.getElementById('displayOptions');
-      optionsBox.innerHTML = '';
+    // LÓGICA DE ARRASTAR E SOLTAR (DRAG AND DROP)
+    function setupDragAndDrop(container) {
+      let draggedItem = null;
 
-      studentOrderState.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'quiz-btn';
-        div.innerHTML = `
-          <span>${item.text}</span>
-          <div class="order-controls">
-            <button onclick="moveItem(${index}, -1)">▲</button>
-            <button onclick="moveItem(${index}, 1)">▼</button>
-          </div>
-        `;
-        optionsBox.appendChild(div);
+      container.querySelectorAll('.drag-item').forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+          draggedItem = item;
+          setTimeout(() => item.classList.add('dragging'), 0);
+        });
+
+        item.addEventListener('dragend', () => {
+          draggedItem.classList.remove('dragging');
+          draggedItem = null;
+        });
+      });
+
+      container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(container, e.clientY);
+        const dragging = container.querySelector('.dragging');
+        if (dragging) {
+          if (afterElement == null) {
+            container.appendChild(dragging);
+          } else {
+            container.insertBefore(dragging, afterElement);
+          }
+        }
       });
     }
 
-    function moveItem(index, direction) {
-      const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= studentOrderState.length) return;
+    function getDragAfterElement(container, y) {
+      const draggableElements = [...container.querySelectorAll('.drag-item:not(.dragging)')];
 
-      const temp = studentOrderState[index];
-      studentOrderState[index] = studentOrderState[targetIndex];
-      studentOrderState[targetIndex] = temp;
-
-      renderOrderList();
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
-    // AVALIAÇÃO DE RESPOSTA E EXIBIÇÃO DE FEEDBACK CUSTOMIZADO
+    // AVALIAÇÃO DE RESPOSTA
     function handleQuizSubmit() {
       const feedback = document.getElementById('displayFeedback');
       let isCorrect = false;
@@ -649,7 +689,9 @@
         if (selectedChoiceId === null) return alert('Escolha uma das alternativas!');
         isCorrect = selectedChoiceId === currentInteraction.correctAnswers[0];
       } else {
-        const studentSeq = studentOrderState.map(i => i.id);
+        // Coleta a ordem dos IDs arrastados pelo aluno
+        const currentElements = document.querySelectorAll('#displayOptions .drag-item');
+        const studentSeq = Array.from(currentElements).map(el => parseInt(el.dataset.id));
         isCorrect = JSON.stringify(studentSeq) === JSON.stringify(currentInteraction.correctAnswers);
       }
 
