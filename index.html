@@ -203,11 +203,12 @@
     }
 
     .feedback {
-      padding: 10px;
+      padding: 12px;
       border-radius: 6px;
       font-weight: bold;
       margin-bottom: 12px;
       text-align: center;
+      line-height: 1.4;
     }
     .feedback.correct { background: #137333; color: #e6f4ea; }
     .feedback.incorrect { background: #c5221f; color: #fce8e6; }
@@ -258,6 +259,17 @@
         <button type="button" class="btn btn-secondary" onclick="addOptionInput()">+ Adicionar Opção</button>
       </div>
 
+      <!-- Novos Campos de Feedback -->
+      <div class="form-group" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        <label for="correctFeedback" style="color: #137333;">Mensagem para Resposta Correta:</label>
+        <input type="text" id="correctFeedback" placeholder="Ex: ✨ Parabéns! Você acertou.">
+      </div>
+
+      <div class="form-group">
+        <label for="incorrectFeedback" style="color: #c5221f;">Mensagem para Resposta Incorreta:</label>
+        <input type="text" id="incorrectFeedback" placeholder="Ex: ❌ Não foi desta vez. Preste atenção no próximo trecho!">
+      </div>
+
       <button type="button" class="btn" onclick="saveInteraction()">💾 Salvar Dinâmica neste Segundo</button>
     </div>
 
@@ -303,7 +315,7 @@
       renderOptionsForm();
       loadDataFromStorage();
       
-      // Sempre força a abertura direta na Tela do Aluno ao carregar/recarregar
+      // Abre direto na Tela do Aluno ao carregar/recarregar
       switchScreen('student');
     };
 
@@ -417,6 +429,9 @@
       const question = document.getElementById('questionText').value.trim();
       const inputs = document.querySelectorAll('#optionsContainer .opt-text');
 
+      const correctFeedback = document.getElementById('correctFeedback').value.trim() || "✨ Resposta Correta! Excelente!";
+      const incorrectFeedback = document.getElementById('incorrectFeedback').value.trim() || "❌ Resposta Incorreta! Assista ao restante do vídeo e tente prestar atenção.";
+
       if (!time || time < 1) return alert('Informe um segundo válido!');
       if (!question) return alert('Informe o texto da pergunta!');
 
@@ -452,6 +467,8 @@
         question: question,
         options: options,
         correctAnswers: correctAnswers,
+        correctFeedback: correctFeedback,
+        incorrectFeedback: incorrectFeedback,
         triggered: false
       });
 
@@ -461,8 +478,11 @@
       updateInteractionsList();
       alert('Dinâmica salva com sucesso!');
       
+      // Limpeza de formulário
       document.getElementById('pauseTime').value = '';
       document.getElementById('questionText').value = '';
+      document.getElementById('correctFeedback').value = '';
+      document.getElementById('incorrectFeedback').value = '';
       renderOptionsForm();
     }
 
@@ -620,7 +640,7 @@
       renderOrderList();
     }
 
-    // AVALIAÇÃO DE RESPOSTA
+    // AVALIAÇÃO DE RESPOSTA E EXIBIÇÃO DE FEEDBACK CUSTOMIZADO
     function handleQuizSubmit() {
       const feedback = document.getElementById('displayFeedback');
       let isCorrect = false;
@@ -634,10 +654,10 @@
       }
 
       if (isCorrect) {
-        feedback.innerText = "✨ Resposta Correta! Excelente!";
+        feedback.innerText = currentInteraction.correctFeedback || "✨ Resposta Correta! Excelente!";
         feedback.className = "feedback correct";
       } else {
-        feedback.innerText = "❌ Resposta Incorreta! Assista ao restante do vídeo e tente prestar atenção.";
+        feedback.innerText = currentInteraction.incorrectFeedback || "❌ Resposta Incorreta! Assista ao restante do vídeo e tente prestar atenção.";
         feedback.className = "feedback incorrect";
       }
 
