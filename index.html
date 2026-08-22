@@ -3,11 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- CORREÇÃO CHAVE PARA O ERRO 153: Define a politica de Referrer necessária pelo YouTube -->
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  
-  <title>Vídeo Interativo do YouTube</title>
+  <title>Plataforma de Vídeos Interativos</title>
   <style>
     * {
       box-sizing: border-box;
@@ -17,46 +14,77 @@
     body {
       background-color: #f0f2f5;
       margin: 0;
-      padding: 20px;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-height: 100vh;
     }
 
-    h1 {
-      color: #1a73e8;
-      margin-bottom: 20px;
-    }
-
-    .container {
+    /* Navegação entre telas */
+    nav {
       width: 100%;
-      max-width: 800px;
+      background-color: #1a73e8;
       display: flex;
-      flex-direction: column;
-      gap: 20px;
+      justify-content: center;
+      gap: 15px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    nav button {
+      background: transparent;
+      border: 2px solid white;
+      color: white;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    nav button.active, nav button:hover {
+      background: white;
+      color: #1a73e8;
+    }
+
+    .view-screen {
+      width: 100%;
+      max-width: 850px;
+      padding: 20px;
+    }
+
+    .hidden {
+      display: none !important;
     }
 
     .card {
       background: #ffffff;
-      padding: 20px;
+      padding: 24px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    h1, h2 {
+      color: #1a73e8;
+      margin-top: 0;
     }
 
     .form-group {
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
 
     label {
       display: block;
       font-weight: 600;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       color: #333;
     }
 
-    input[type="text"], input[type="number"] {
+    input[type="text"], input[type="number"], select {
       width: 100%;
-      padding: 8px 12px;
+      padding: 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 14px;
@@ -74,51 +102,56 @@
       margin-top: 10px;
     }
 
-    .btn:hover {
-      background: #1557b0;
-    }
-
-    .btn-secondary {
-      background: #5f6368;
-      margin-top: 5px;
-    }
+    .btn:hover { background: #1557b0; }
+    .btn-secondary { background: #5f6368; }
+    .btn-danger { background: #d93025; }
 
     .option-item {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       background: #f8f9fa;
-      padding: 6px 10px;
+      padding: 8px;
       border-radius: 6px;
       border: 1px solid #e0e0e0;
     }
 
+    /* Lista de interações salvas */
+    .interaction-card {
+      border-left: 4px solid #1a73e8;
+      background: #f8f9fa;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Estilização do Player de Vídeo e Quiz Overlay */
     .video-wrapper {
       position: relative;
       padding-bottom: 56.25%;
       height: 0;
       background: #000;
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
 
     .video-wrapper iframe {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       border: 0;
     }
 
     .overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.88);
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.92);
       color: white;
       display: flex;
       flex-direction: column;
@@ -128,210 +161,343 @@
       z-index: 10;
     }
 
-    .hidden {
-      display: none !important;
-    }
-
     .quiz-box {
       background: #202124;
-      padding: 20px;
-      border-radius: 8px;
+      padding: 24px;
+      border-radius: 12px;
       width: 100%;
-      max-width: 450px;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
 
     .quiz-options {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin: 15px 0;
+      gap: 10px;
+      margin: 18px 0;
     }
 
     .quiz-btn {
       background: #3c4043;
       color: white;
       border: 1px solid #5f6368;
-      padding: 10px;
+      padding: 12px;
       border-radius: 6px;
       cursor: pointer;
       text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    .quiz-btn:hover {
-      background: #4d5156;
+    .quiz-btn:hover { background: #4d5156; }
+
+    .order-controls button {
+      background: #5f6368;
+      border: none;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 5px;
     }
 
     .feedback {
-      padding: 8px;
+      padding: 10px;
       border-radius: 6px;
       font-weight: bold;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       text-align: center;
     }
-
-    .feedback.correct {
-      background: #137333;
-      color: #e6f4ea;
-    }
-
-    .feedback.incorrect {
-      background: #c5221f;
-      color: #fce8e6;
-    }
+    .feedback.correct { background: #137333; color: #e6f4ea; }
+    .feedback.incorrect { background: #c5221f; color: #fce8e6; }
   </style>
 </head>
 <body>
 
-  <h1>Vídeo Interativo do YouTube</h1>
+  <!-- Menu Superior para Alternar Telas -->
+  <nav>
+    <button id="navConfig" class="active" onclick="switchScreen('config')">⚙️ Configuração</button>
+    <button id="navStudent" onclick="switchScreen('student')">🎓 Tela do Aluno</button>
+  </nav>
 
-  <div class="container">
-    
+  <!-- ================= TELA 1: CONFIGURAÇÃO ================= -->
+  <div id="screenConfig" class="view-screen">
     <div class="card">
-      <h2>1. Cadastrar Vídeo do YouTube</h2>
-      
+      <h2>1. Configurar Vídeo Principal</h2>
       <div class="form-group">
         <label for="youtubeUrl">Link do Vídeo do YouTube:</label>
-        <input type="text" id="youtubeUrl" placeholder="Ex: https://www.youtube.com/watch?v=M7lc1UVf-VE" value="https://www.youtube.com/watch?v=M7lc1UVf-VE">
+        <input type="text" id="youtubeUrl" value="https://www.youtube.com/watch?v=M7lc1UVf-VE">
       </div>
-
-      <div class="form-group">
-        <label for="pauseTime">Pausar no Segundo:</label>
-        <input type="number" id="pauseTime" placeholder="Ex: 5" value="5" min="1">
-      </div>
-
-      <div class="form-group">
-        <label for="questionText">Texto da Pergunta:</label>
-        <input type="text" id="questionText" placeholder="Ex: O que aconteceu nesta parte do vídeo?" value="O que você achou do início deste vídeo?">
-      </div>
-
-      <div class="form-group">
-        <label>Alternativas (Marque a correta no botão redondo):</label>
-        <div id="optionsInputs">
-          <div class="option-item">
-            <input type="radio" name="correctIndex" value="0" checked>
-            <input type="text" class="opt-text" value="Opção A (Correta)">
-          </div>
-          <div class="option-item">
-            <input type="radio" name="correctIndex" value="1">
-            <input type="text" class="opt-text" value="Opção B (Incorreta)">
-          </div>
-        </div>
-        <button type="button" class="btn btn-secondary" onclick="addOptionField()">+ Adicionar Alternativa</button>
-      </div>
-
-      <button type="button" class="btn" onclick="setupYouTubeVideo()">▶ Carregar Vídeo do YouTube</button>
     </div>
 
     <div class="card">
-      <h2>2. Área de Exibição</h2>
+      <h2>2. Adicionar Dinâmica / Pergunta</h2>
       
+      <div class="form-group">
+        <label for="pauseTime">Pausar no Segundo:</label>
+        <input type="number" id="pauseTime" placeholder="Ex: 10" min="1">
+      </div>
+
+      <div class="form-group">
+        <label for="quizType">Tipo de Dinâmica:</label>
+        <select id="quizType" onchange="renderOptionsForm()">
+          <option value="choice">Múltipla Escolha (1 Opção Correta)</option>
+          <option value="order">Ordenar Sequência (Colocar em Ordem Correta)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="questionText">Pergunta / Instrução:</label>
+        <input type="text" id="questionText" placeholder="Ex: Coloque os passos abaixo na ordem certa:">
+      </div>
+
+      <div class="form-group">
+        <label id="optionsLabel">Alternativas:</label>
+        <div id="optionsContainer"></div>
+        <button type="button" class="btn btn-secondary" onclick="addOptionInput()">+ Adicionar Opção</button>
+      </div>
+
+      <button type="button" class="btn" onclick="saveInteraction()">💾 Salvar Dinâmica neste Segundo</button>
+    </div>
+
+    <div class="card">
+      <h2>3. Dinâmicas Cadastradas</h2>
+      <div id="interactionsList">Nenhuma dinâmica cadastrada ainda.</div>
+    </div>
+  </div>
+
+  <!-- ================= TELA 2: ALUNO (VÍDEO INTERATIVO) ================= -->
+  <div id="screenStudent" class="view-screen hidden">
+    <div class="card">
+      <h2>Vídeo Interativo</h2>
       <div class="video-wrapper">
         <div id="playerContainer"></div>
 
+        <!-- Overlays de Perguntas/Quiz -->
         <div id="quizOverlay" class="overlay hidden">
           <div class="quiz-box">
             <h3 id="displayQuestion">Pergunta?</h3>
             <div id="displayOptions" class="quiz-options"></div>
             <div id="displayFeedback" class="feedback hidden"></div>
-            <button id="btnContinue" class="btn hidden" onclick="resumeVideo()">Continuar Vídeo</button>
+            <button id="btnAction" class="btn" onclick="handleQuizSubmit()">Responder</button>
+            <button id="btnContinue" class="btn hidden" onclick="resumeVideo()">Continuar Vídeo ▶</button>
           </div>
         </div>
       </div>
-
     </div>
-
   </div>
 
   <script>
+    // ESTADO DA APLICAÇÃO
+    let interactions = []; // Armazena todas as dinâmicas vinculadas aos segundos do vídeo
+    let currentInteraction = null;
     let player = null;
     let checkTimer = null;
-    let targetTime = 0;
-    let currentQuestion = "";
-    let currentOptions = [];
-    let hasTriggered = false;
 
-    function addOptionField() {
-      const container = document.getElementById('optionsInputs');
-      const idx = container.children.length;
+    // INICIALIZAÇÃO DA TELA DE CONFIGURAÇÃO
+    window.onload = function() {
+      renderOptionsForm();
+    };
 
+    function switchScreen(screen) {
+      document.getElementById('screenConfig').classList.add('hidden');
+      document.getElementById('screenStudent').classList.add('hidden');
+      document.getElementById('navConfig').classList.remove('active');
+      document.getElementById('navStudent').classList.remove('active');
+
+      if (screen === 'config') {
+        document.getElementById('screenConfig').classList.remove('hidden');
+        document.getElementById('navConfig').classList.add('active');
+        if (player) clearInterval(checkTimer);
+      } else {
+        document.getElementById('screenStudent').classList.remove('hidden');
+        document.getElementById('navStudent').classList.add('active');
+        initStudentPlayer();
+      }
+    }
+
+    // FORMULÁRIO DINÂMICO
+    function renderOptionsForm() {
+      const type = document.getElementById('quizType').value;
+      const container = document.getElementById('optionsContainer');
+      const label = document.getElementById('optionsLabel');
+      container.innerHTML = '';
+
+      if (type === 'choice') {
+        label.innerText = 'Alternativas (Marque a correta no botão redondo):';
+        container.appendChild(createChoiceInput(0, true));
+        container.appendChild(createChoiceInput(1, false));
+      } else {
+        label.innerText = 'Insira os itens NA ORDEM CORRETA (eles serão embaralhados para o aluno):';
+        container.appendChild(createOrderInput(0));
+        container.appendChild(createOrderInput(1));
+      }
+    }
+
+    function createChoiceInput(idx, isChecked) {
       const div = document.createElement('div');
       div.className = 'option-item';
       div.innerHTML = `
-        <input type="radio" name="correctIndex" value="${idx}">
-        <input type="text" class="opt-text" placeholder="Alternativa ${idx + 1}">
+        <input type="radio" name="correctIndex" value="${idx}" ${isChecked ? 'checked' : ''}>
+        <input type="text" class="opt-text" placeholder="Opção ${idx + 1}">
       `;
-      container.appendChild(div);
+      return div;
     }
 
+    function createOrderInput(idx) {
+      const div = document.createElement('div');
+      div.className = 'option-item';
+      div.innerHTML = `
+        <span style="font-weight:bold">${idx + 1}º</span>
+        <input type="text" class="opt-text" placeholder="Passo/Item ${idx + 1}">
+      `;
+      return div;
+    }
+
+    function addOptionInput() {
+      const type = document.getElementById('quizType').value;
+      const container = document.getElementById('optionsContainer');
+      const idx = container.children.length;
+
+      if (type === 'choice') {
+        container.appendChild(createChoiceInput(idx, false));
+      } else {
+        container.appendChild(createOrderInput(idx));
+      }
+    }
+
+    // SALVAR INTERAÇÕES
+    function saveInteraction() {
+      const time = parseInt(document.getElementById('pauseTime').value);
+      const type = document.getElementById('quizType').value;
+      const question = document.getElementById('questionText').value.trim();
+      const inputs = document.querySelectorAll('#optionsContainer .opt-text');
+
+      if (!time || time < 1) return alert('Informe um segundo válido!');
+      if (!question) return alert('Informe o texto da pergunta!');
+
+      let options = [];
+      let correctAnswers = [];
+
+      if (type === 'choice') {
+        const selectedRadio = document.querySelector('input[name="correctIndex"]:checked');
+        if (!selectedRadio) return alert('Selecione a alternativa correta!');
+        const correctIdx = parseInt(selectedRadio.value);
+
+        inputs.forEach((inp, i) => {
+          if (inp.value.trim() !== "") {
+            options.push({ id: i, text: inp.value.trim() });
+            if (i === correctIdx) correctAnswers.push(i);
+          }
+        });
+      } else {
+        // Ordenação: a ordem em que foi cadastrada é a correta
+        inputs.forEach((inp, i) => {
+          if (inp.value.trim() !== "") {
+            options.push({ id: i, text: inp.value.trim() });
+            correctAnswers.push(i); // Sequência esperada: [0, 1, 2, ...]
+          }
+        });
+      }
+
+      if (options.length < 2) return alert('Insira pelo menos 2 opções!');
+
+      // Salva a interatividade
+      interactions.push({
+        id: Date.now(),
+        time: time,
+        type: type,
+        question: question,
+        options: options,
+        correctAnswers: correctAnswers,
+        triggered: false
+      });
+
+      // Ordena por tempo do vídeo
+      interactions.sort((a, b) => a.time - b.time);
+
+      updateInteractionsList();
+      alert('Dinâmica salva com sucesso!');
+      
+      // Limpa formulário
+      document.getElementById('pauseTime').value = '';
+      document.getElementById('questionText').value = '';
+      renderOptionsForm();
+    }
+
+    function updateInteractionsList() {
+      const list = document.getElementById('interactionsList');
+      if (interactions.length === 0) {
+        list.innerText = 'Nenhuma dinâmica cadastrada ainda.';
+        return;
+      }
+
+      list.innerHTML = '';
+      interactions.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'interaction-card';
+        div.innerHTML = `
+          <div>
+            <strong>⏱️ ${item.time}s</strong> - [${item.type === 'choice' ? 'Múltipla Escolha' : 'Ordenar'}] ${item.question}
+          </div>
+          <button class="btn btn-danger" style="width:auto; margin:0;" onclick="removeInteraction(${item.id})">Excluir</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function removeInteraction(id) {
+      interactions = interactions.filter(i => i.id !== id);
+      updateInteractionsList();
+    }
+
+    // EXTRAÇÃO DE ID DO YOUTUBE
     function extractYouTubeId(url) {
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
       const match = url.match(regExp);
       return (match && match[2].length === 11) ? match[2] : null;
     }
 
-    function setupYouTubeVideo() {
+    // TELA DO ALUNO: EXECUÇÃO DO PLAYER
+    function initStudentPlayer() {
       const url = document.getElementById('youtubeUrl').value.trim();
       const videoId = extractYouTubeId(url);
-      targetTime = parseInt(document.getElementById('pauseTime').value);
-      currentQuestion = document.getElementById('questionText').value.trim();
 
-      if (!videoId) return alert('Por favor, insira um link válido do YouTube!');
-      if (!targetTime || targetTime < 1) return alert('Insira um segundo válido!');
+      if (!videoId) return alert('O link do vídeo do YouTube é inválido!');
 
-      const optionFields = document.querySelectorAll('.opt-text');
-      const selectedRadio = document.querySelector('input[name="correctIndex"]:checked');
-      
-      if (!selectedRadio) return alert('Selecione qual alternativa é a correta!');
+      // Reseta o estado de execução das perguntas
+      interactions.forEach(i => i.triggered = false);
 
-      const correctIndex = parseInt(selectedRadio.value);
-      currentOptions = [];
-
-      optionFields.forEach((input, index) => {
-        if (input.value.trim() !== "") {
-          currentOptions.push({
-            text: input.value.trim(),
-            isCorrect: index === correctIndex
-          });
-        }
-      });
-
-      hasTriggered = false;
-
-      // CORREÇÃO ERRO 153: Usamos IFrame com 'youtube-nocookie.com' e atributos de segurança de Referrer diretamente
       const container = document.getElementById('playerContainer');
       container.innerHTML = `
         <iframe id="player" 
           src="https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&autoplay=1" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-          referrerpolicy="strict-origin-when-cross-origin"
+          referrerpolicy="strict-origin-when-cross-origin" 
           allowfullscreen>
         </iframe>
       `;
 
-      // Inicializa os ouvintes da API no iframe gerado
       if (window.YT && window.YT.Player) {
-        initPlayer();
+        setupPlayerObject();
       } else {
-        window.onYouTubeIframeAPIReady = function() {
-          initPlayer();
-        };
+        window.onYouTubeIframeAPIReady = setupPlayerObject;
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         document.head.appendChild(tag);
       }
     }
 
-    function initPlayer() {
+    function setupPlayerObject() {
       player = new YT.Player('player', {
-        events: {
-          'onStateChange': onPlayerStateChange
-        }
+        events: { 'onStateChange': onPlayerStateChange }
       });
     }
 
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.PLAYING) {
-        checkTimer = setInterval(checkVideoTime, 200);
+        checkTimer = setInterval(checkVideoTime, 250);
       } else {
         clearInterval(checkTimer);
       }
@@ -342,47 +508,104 @@
 
       const currentTime = Math.floor(player.getCurrentTime());
 
-      if (currentTime >= targetTime && !hasTriggered) {
-        hasTriggered = true;
+      // Procura se existe alguma interação configurada para o segundo atual
+      const nextInteraction = interactions.find(i => i.time === currentTime && !i.triggered);
+
+      if (nextInteraction) {
+        nextInteraction.triggered = true;
+        currentInteraction = nextInteraction;
         player.pauseVideo();
-        showQuiz();
+        showQuizOverlay(nextInteraction);
       }
     }
 
-    function showQuiz() {
-      document.getElementById('displayQuestion').innerText = currentQuestion;
-      
+    // EXIBIR QUIZ PARA O ALUNO
+    let studentOrderState = [];
+    let selectedChoiceId = null;
+
+    function showQuizOverlay(data) {
+      document.getElementById('displayQuestion').innerText = data.question;
+      document.getElementById('displayFeedback').className = 'feedback hidden';
+      document.getElementById('btnContinue').classList.add('hidden');
+      document.getElementById('btnAction').classList.remove('hidden');
+
       const optionsBox = document.getElementById('displayOptions');
       optionsBox.innerHTML = '';
 
-      document.getElementById('displayFeedback').className = 'feedback hidden';
-      document.getElementById('btnContinue').classList.add('hidden');
-
-      currentOptions.forEach((opt) => {
-        const btn = document.createElement('button');
-        btn.className = 'quiz-btn';
-        btn.innerText = opt.text;
-        btn.onclick = () => checkAnswer(opt);
-        optionsBox.appendChild(btn);
-      });
+      if (data.type === 'choice') {
+        selectedChoiceId = null;
+        data.options.forEach(opt => {
+          const btn = document.createElement('div');
+          btn.className = 'quiz-btn';
+          btn.innerText = opt.text;
+          btn.onclick = () => {
+            document.querySelectorAll('.quiz-btn').forEach(b => b.style.borderColor = '#5f6368');
+            btn.style.borderColor = '#1a73e8';
+            selectedChoiceId = opt.id;
+          };
+          optionsBox.appendChild(btn);
+        });
+      } else {
+        // EMBARALHAR opçoes para a dinâmica de ordenação
+        studentOrderState = [...data.options].sort(() => Math.random() - 0.5);
+        renderOrderList();
+      }
 
       document.getElementById('quizOverlay').classList.remove('hidden');
     }
 
-    function checkAnswer(selectedOption) {
-      const feedbackBox = document.getElementById('displayFeedback');
-      
-      const btns = document.querySelectorAll('.quiz-btn');
-      btns.forEach(b => b.style.pointerEvents = 'none');
+    function renderOrderList() {
+      const optionsBox = document.getElementById('displayOptions');
+      optionsBox.innerHTML = '';
 
-      if (selectedOption.isCorrect) {
-        feedbackBox.innerText = "Parabéns! Resposta Correta!";
-        feedbackBox.className = "feedback correct";
+      studentOrderState.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'quiz-btn';
+        div.innerHTML = `
+          <span>${item.text}</span>
+          <div class="order-controls">
+            <button onclick="moveItem(${index}, -1)">▲</button>
+            <button onclick="moveItem(${index}, 1)">▼</button>
+          </div>
+        `;
+        optionsBox.appendChild(div);
+      });
+    }
+
+    function moveItem(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= studentOrderState.length) return;
+
+      const temp = studentOrderState[index];
+      studentOrderState[index] = studentOrderState[targetIndex];
+      studentOrderState[targetIndex] = temp;
+
+      renderOrderList();
+    }
+
+    // AVALIAÇÃO DE RESPOSTA
+    function handleQuizSubmit() {
+      const feedback = document.getElementById('displayFeedback');
+      let isCorrect = false;
+
+      if (currentInteraction.type === 'choice') {
+        if (selectedChoiceId === null) return alert('Escolha uma das alternativas!');
+        isCorrect = selectedChoiceId === currentInteraction.correctAnswers[0];
       } else {
-        feedbackBox.innerText = "Resposta Incorreta!";
-        feedbackBox.className = "feedback incorrect";
+        // Verifica se os IDs na lista ordenada do aluno coincidem exatamente com a ordem correta [0, 1, 2...]
+        const studentSeq = studentOrderState.map(i => i.id);
+        isCorrect = JSON.stringify(studentSeq) === JSON.stringify(currentInteraction.correctAnswers);
       }
 
+      if (isCorrect) {
+        feedback.innerText = "✨ Resposta Correta! Excelente!";
+        feedback.className = "feedback correct";
+      } else {
+        feedback.innerText = "❌ Resposta Incorreta! Assista ao restante do vídeo e tente prestar atenção.";
+        feedback.className = "feedback incorrect";
+      }
+
+      document.getElementById('btnAction').classList.add('hidden');
       document.getElementById('btnContinue').classList.remove('hidden');
     }
 
