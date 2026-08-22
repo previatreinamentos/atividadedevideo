@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Plataforma de Vídeos Interativos</title>
-  
-  <!-- Polyfill para suporte a Drag and Drop em telas Touch/Mobile -->
+
+  <!-- Polyfill para Drag and Drop em telas Touch/Mobile -->
   <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.0/DragDropTouch.js"></script>
 
   <style>
@@ -26,7 +26,7 @@
       min-height: 100vh;
     }
 
-    /* Navegação */
+    /* Navegação do Instrutor */
     nav {
       width: 100%;
       background-color: #1a73e8;
@@ -72,10 +72,9 @@
       margin-bottom: 20px;
     }
 
-    h1, h2 {
+    h1, h2, h3 {
       color: #1a73e8;
       margin-top: 0;
-      font-size: 1.25rem;
     }
 
     .form-group {
@@ -117,6 +116,16 @@
     .btn-danger { background: #d93025; }
     .btn-start { background: #34a853; font-size: 18px; padding: 15px 30px; width: auto; }
     .btn-start:hover { background: #2d9247; }
+
+    .share-link-box {
+      background: #e8f0fe;
+      border: 1px solid #aecbfa;
+      padding: 12px;
+      border-radius: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
 
     .option-item {
       display: flex;
@@ -184,11 +193,7 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.5);
       max-height: 100%;
       overflow-y: auto;
-    }
-
-    .quiz-box h3 {
-      margin-top: 0;
-      font-size: 1.1rem;
+      text-align: center;
     }
 
     .quiz-options {
@@ -210,30 +215,12 @@
       justify-content: space-between;
       align-items: center;
       user-select: none;
-      touch-action: none; /* Garante resposta limpa ao toque */
+      touch-action: none;
     }
 
-    /* Estilização Drag & Drop Mobile e Desktop */
-    .drag-item {
-      cursor: grab;
-      transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
-    }
-    .drag-item:active {
-      cursor: grabbing;
-    }
-    .drag-item.dragging {
-      opacity: 0.5;
-      background: #1a73e8;
-      border-color: #4285f4;
-    }
-    .drag-handle {
-      margin-left: 10px;
-      color: #9aa0a6;
-      font-size: 20px;
-      padding: 0 5px;
-    }
-
-    .quiz-btn:hover { background: #4d5156; }
+    .drag-item { cursor: grab; }
+    .drag-item.dragging { opacity: 0.5; background: #1a73e8; }
+    .drag-handle { color: #9aa0a6; font-size: 20px; }
 
     .feedback {
       padding: 12px;
@@ -241,32 +228,50 @@
       font-weight: bold;
       margin-bottom: 12px;
       text-align: center;
-      line-height: 1.4;
       font-size: 14px;
     }
     .feedback.correct { background: #137333; color: #e6f4ea; }
     .feedback.incorrect { background: #c5221f; color: #fce8e6; }
 
-    /* Ajustes específicos para telas mobile pequenas */
-    @media (max-width: 480px) {
-      .view-screen { padding: 10px; }
-      .card { padding: 15px; }
-      .quiz-box { padding: 15px; }
-      .quiz-btn { padding: 10px; font-size: 14px; }
-      .btn-start { font-size: 16px; padding: 12px 24px; }
+    /* Relatório Final */
+    .score-badge {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #34a853;
+      margin: 10px 0;
+    }
+
+    .score-details {
+      background: #303134;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 15px;
+      line-height: 1.6;
     }
   </style>
 </head>
 <body>
 
-  <!-- Menu Superior -->
-  <nav>
-    <button id="navStudent" onclick="switchScreen('student')">🎓 Tela do Aluno</button>
+  <!-- Menu do Instrutor (SÓ APARECE NO MODO CONFIGURAÇÃO) -->
+  <nav id="instructorNav" class="hidden">
     <button id="navConfig" onclick="switchScreen('config')">⚙️ Configuração</button>
+    <button id="navStudent" onclick="switchScreen('student')">🎓 Preview do Aluno</button>
   </nav>
 
   <!-- ================= TELA 1: CONFIGURAÇÃO ================= -->
   <div id="screenConfig" class="view-screen hidden">
+    
+    <!-- Link para Compartilhar -->
+    <div class="card">
+      <h2>🔗 Link Direto para o Aluno</h2>
+      <p style="font-size: 14px; color: #555;">Envie o link abaixo para seus alunos. Ele abre diretamente o vídeo sem exibir os menus de configuração:</p>
+      <div class="share-link-box">
+        <input type="text" id="studentShareUrl" readonly>
+        <button class="btn" style="width: auto; margin:0; padding: 10px 15px;" onclick="copyStudentLink()">Copiar Link</button>
+      </div>
+    </div>
+
     <div class="card">
       <h2>1. Configurar Vídeo Principal</h2>
       <div class="form-group">
@@ -293,7 +298,7 @@
 
       <div class="form-group">
         <label for="questionText">Pergunta / Instrução:</label>
-        <input type="text" id="questionText" placeholder="Ex: Arraste os passos abaixo para a ordem correta:">
+        <input type="text" id="questionText" placeholder="Ex: Arraste os passos para a ordem correta:">
       </div>
 
       <div class="form-group">
@@ -309,7 +314,7 @@
 
       <div class="form-group">
         <label for="incorrectFeedback" style="color: #c5221f;">Mensagem para Resposta Incorreta:</label>
-        <input type="text" id="incorrectFeedback" placeholder="Ex: ❌ Não foi desta vez. Preste atenção no próximo trecho!">
+        <input type="text" id="incorrectFeedback" placeholder="Ex: ❌ Resposta Incorreta!">
       </div>
 
       <button type="button" class="btn" onclick="saveInteraction()">💾 Salvar Dinâmica neste Segundo</button>
@@ -331,7 +336,7 @@
       <div class="video-wrapper">
         <div id="playerContainer"></div>
 
-        <!-- Tela Inicial de Start Manual -->
+        <!-- Tela de Start Manual -->
         <div id="startOverlay" class="overlay">
           <button class="btn btn-start" onclick="startStudentVideo()">▶ Iniciar Vídeo</button>
         </div>
@@ -339,13 +344,34 @@
         <!-- Overlay de Quiz/Dinâmicas -->
         <div id="quizOverlay" class="overlay hidden">
           <div class="quiz-box">
-            <h3 id="displayQuestion">Pergunta?</h3>
+            <h3 id="displayQuestion" style="color:white; text-align: left;">Pergunta?</h3>
             <div id="displayOptions" class="quiz-options"></div>
             <div id="displayFeedback" class="feedback hidden"></div>
             <button id="btnAction" class="btn" onclick="handleQuizSubmit()">Responder</button>
             <button id="btnContinue" class="btn hidden" onclick="resumeVideo()">Continuar Vídeo ▶</button>
           </div>
         </div>
+
+        <!-- Overlay do Relatório Final -->
+        <div id="reportOverlay" class="overlay hidden">
+          <div class="quiz-box">
+            <h2>🎓 Aula Concluída!</h2>
+            <p>Confira seu resultado final:</p>
+            
+            <div id="scorePercentage" class="score-badge">0%</div>
+
+            <div class="score-details">
+              <div>🎯 <strong>Total de Atividades:</strong> <span id="totalQuestions">0</span></div>
+              <div>✅ <strong>Acertos:</strong> <span id="correctAnswers">0</span></div>
+              <div>❌ <strong>Erros:</strong> <span id="incorrectAnswers">0</span></div>
+            </div>
+
+            <p id="finalMessage" style="font-size: 14px; margin-bottom: 15px;"></p>
+
+            <button class="btn" onclick="restartVideo()">🔄 Refazer Vídeo</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -356,11 +382,45 @@
     let player = null;
     let checkTimer = null;
 
-    window.onload = function() {
-      renderOptionsForm();
-      loadDataFromStorage();
-      switchScreen('student');
+    // Métricas de Desempenho do Aluno
+    let score = {
+      correct: 0,
+      incorrect: 0,
+      total: 0
     };
+
+    window.onload = function() {
+      loadDataFromStorage();
+      renderOptionsForm();
+      
+      // Controle de Rota / Exibição baseada na URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const viewMode = urlParams.get('view');
+
+      if (viewMode === 'config') {
+        // Modo Instrutor
+        document.getElementById('instructorNav').classList.remove('hidden');
+        switchScreen('config');
+      } else {
+        // Modo Aluno (Padrão ou ?view=student)
+        document.getElementById('instructorNav').classList.add('hidden');
+        switchScreen('student');
+      }
+
+      updateShareLink();
+    };
+
+    function updateShareLink() {
+      const baseUrl = window.location.href.split('?')[0];
+      document.getElementById('studentShareUrl').value = `${baseUrl}?view=student`;
+    }
+
+    function copyStudentLink() {
+      const copyText = document.getElementById('studentShareUrl');
+      copyText.select();
+      document.execCommand("copy");
+      alert("Link do aluno copiado com sucesso!");
+    }
 
     function saveDataToStorage() {
       const dataToSave = {
@@ -368,6 +428,7 @@
         interactions: interactions
       };
       localStorage.setItem('interactive_video_data', JSON.stringify(dataToSave));
+      updateShareLink();
     }
 
     function loadDataFromStorage() {
@@ -470,7 +531,7 @@
       const inputs = document.querySelectorAll('#optionsContainer .opt-text');
 
       const correctFeedback = document.getElementById('correctFeedback').value.trim() || "✨ Resposta Correta! Excelente!";
-      const incorrectFeedback = document.getElementById('incorrectFeedback').value.trim() || "❌ Resposta Incorreta! Assista ao restante do vídeo e tente prestar atenção.";
+      const incorrectFeedback = document.getElementById('incorrectFeedback').value.trim() || "❌ Resposta Incorreta!";
 
       if (!time || time < 1) return alert('Informe um segundo válido!');
       if (!question) return alert('Informe o texto da pergunta!');
@@ -565,13 +626,15 @@
 
       if (!videoId) return alert('O link do vídeo do YouTube é inválido!');
 
+      // Reset de pontuação
+      score = { correct: 0, incorrect: 0, total: interactions.length };
       interactions.forEach(i => i.triggered = false);
 
       document.getElementById('startOverlay').classList.remove('hidden');
       document.getElementById('quizOverlay').classList.add('hidden');
+      document.getElementById('reportOverlay').classList.add('hidden');
 
       const container = document.getElementById('playerContainer');
-      // Sem autoplay na URL
       container.innerHTML = `
         <iframe id="player" 
           src="https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&autoplay=0" 
@@ -607,6 +670,9 @@
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.PLAYING) {
         checkTimer = setInterval(checkVideoTime, 250);
+      } else if (event.data === YT.PlayerState.ENDED) {
+        clearInterval(checkTimer);
+        showFinalReport();
       } else {
         clearInterval(checkTimer);
       }
@@ -652,7 +718,6 @@
         });
       } else {
         const shuffled = [...data.options].sort(() => Math.random() - 0.5);
-        
         shuffled.forEach(opt => {
           const item = document.createElement('div');
           item.className = 'quiz-btn drag-item';
@@ -664,7 +729,6 @@
           `;
           optionsBox.appendChild(item);
         });
-
         setupDragAndDrop(optionsBox);
       }
 
@@ -675,7 +739,7 @@
       let draggedItem = null;
 
       container.querySelectorAll('.drag-item').forEach(item => {
-        item.addEventListener('dragstart', (e) => {
+        item.addEventListener('dragstart', () => {
           draggedItem = item;
           setTimeout(() => item.classList.add('dragging'), 0);
         });
@@ -728,10 +792,12 @@
       }
 
       if (isCorrect) {
+        score.correct++;
         feedback.innerText = currentInteraction.correctFeedback || "✨ Resposta Correta! Excelente!";
         feedback.className = "feedback correct";
       } else {
-        feedback.innerText = currentInteraction.incorrectFeedback || "❌ Resposta Incorreta! Assista ao restante do vídeo e tente prestar atenção.";
+        score.incorrect++;
+        feedback.innerText = currentInteraction.incorrectFeedback || "❌ Resposta Incorreta!";
         feedback.className = "feedback incorrect";
       }
 
@@ -742,6 +808,32 @@
     function resumeVideo() {
       document.getElementById('quizOverlay').classList.add('hidden');
       player.playVideo();
+    }
+
+    // EXIBIR RELATÓRIO FINAL
+    function showFinalReport() {
+      const total = score.total;
+      const percentage = total > 0 ? Math.round((score.correct / total) * 100) : 100;
+
+      document.getElementById('totalQuestions').innerText = total;
+      document.getElementById('correctAnswers').innerText = score.correct;
+      document.getElementById('incorrectAnswers').innerText = score.incorrect;
+      document.getElementById('scorePercentage').innerText = `${percentage}%`;
+
+      const msgBox = document.getElementById('finalMessage');
+      if (percentage === 100) {
+        msgBox.innerText = "🏆 Perfeito! Você acertou todas as atividades do vídeo!";
+      } else if (percentage >= 70) {
+        msgBox.innerText = "👏 Muito bem! Você teve um ótimo aproveitamento.";
+      } else {
+        msgBox.innerText = "📚 Que tal rever o vídeo e tentar novamente para melhorar sua nota?";
+      }
+
+      document.getElementById('reportOverlay').classList.remove('hidden');
+    }
+
+    function restartVideo() {
+      initStudentPlayer();
     }
   </script>
 </body>
