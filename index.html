@@ -217,17 +217,17 @@
 
   <!-- Menu Superior para Alternar Telas -->
   <nav>
-    <button id="navConfig" class="active" onclick="switchScreen('config')">⚙️ Configuração</button>
     <button id="navStudent" onclick="switchScreen('student')">🎓 Tela do Aluno</button>
+    <button id="navConfig" onclick="switchScreen('config')">⚙️ Configuração</button>
   </nav>
 
   <!-- ================= TELA 1: CONFIGURAÇÃO ================= -->
-  <div id="screenConfig" class="view-screen">
+  <div id="screenConfig" class="view-screen hidden">
     <div class="card">
       <h2>1. Configurar Vídeo Principal</h2>
       <div class="form-group">
         <label for="youtubeUrl">Link do Vídeo do YouTube:</label>
-        <input type="text" id="youtubeUrl" value="https://www.youtube.com/watch?v=M7lc1UVf-VE">
+        <input type="text" id="youtubeUrl" value="https://www.youtube.com/watch?v=M7lc1UVf-VE" onchange="saveDataToStorage()">
       </div>
     </div>
 
@@ -262,13 +262,16 @@
     </div>
 
     <div class="card">
-      <h2>3. Dinâmicas Cadastradas</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 style="margin: 0;">3. Dinâmicas Cadastradas</h2>
+        <button class="btn btn-danger" style="width: auto; margin: 0;" onclick="clearAllData()">🗑️ Limpar Tudo</button>
+      </div>
       <div id="interactionsList">Nenhuma dinâmica cadastrada ainda.</div>
     </div>
   </div>
 
   <!-- ================= TELA 2: ALUNO (VÍDEO INTERATIVO) ================= -->
-  <div id="screenStudent" class="view-screen hidden">
+  <div id="screenStudent" class="view-screen">
     <div class="card">
       <h2>Vídeo Interativo</h2>
       <div class="video-wrapper">
@@ -290,15 +293,55 @@
 
   <script>
     // ESTADO DA APLICAÇÃO
-    let interactions = []; // Armazena todas as dinâmicas vinculadas aos segundos do vídeo
+    let interactions = []; 
     let currentInteraction = null;
     let player = null;
     let checkTimer = null;
 
-    // INICIALIZAÇÃO DA TELA DE CONFIGURAÇÃO
+    // INICIALIZAÇÃO DA APLICAÇÃO
     window.onload = function() {
       renderOptionsForm();
+      loadDataFromStorage();
+      
+      // Sempre força a abertura direta na Tela do Aluno ao carregar/recarregar
+      switchScreen('student');
     };
+
+    // PERSISTÊNCIA DE DADOS (LOCALSTORAGE)
+    function saveDataToStorage() {
+      const dataToSave = {
+        youtubeUrl: document.getElementById('youtubeUrl').value.trim(),
+        interactions: interactions
+      };
+      localStorage.setItem('interactive_video_data', JSON.stringify(dataToSave));
+    }
+
+    function loadDataFromStorage() {
+      const saved = localStorage.getItem('interactive_video_data');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.youtubeUrl) {
+            document.getElementById('youtubeUrl').value = parsed.youtubeUrl;
+          }
+          if (Array.isArray(parsed.interactions)) {
+            interactions = parsed.interactions;
+          }
+        } catch (e) {
+          console.error("Erro ao carregar dados do LocalStorage", e);
+        }
+      }
+      updateInteractionsList();
+    }
+
+    function clearAllData() {
+      if (confirm("Tem certeza de que deseja apagar todas as dinâmicas cadastradas?")) {
+        interactions = [];
+        localStorage.removeItem('interactive_video_data');
+        updateInteractionsList();
+        alert("Todos os dados foram limpos!");
+      }
+    }
 
     function switchScreen(screen) {
       document.getElementById('screenConfig').classList.add('hidden');
@@ -392,18 +435,16 @@
           }
         });
       } else {
-        // Ordenação: a ordem em que foi cadastrada é a correta
         inputs.forEach((inp, i) => {
           if (inp.value.trim() !== "") {
             options.push({ id: i, text: inp.value.trim() });
-            correctAnswers.push(i); // Sequência esperada: [0, 1, 2, ...]
+            correctAnswers.push(i);
           }
         });
       }
 
       if (options.length < 2) return alert('Insira pelo menos 2 opções!');
 
-      // Salva a interatividade
       interactions.push({
         id: Date.now(),
         time: time,
@@ -414,13 +455,12 @@
         triggered: false
       });
 
-      // Ordena por tempo do vídeo
       interactions.sort((a, b) => a.time - b.time);
 
+      saveDataToStorage();
       updateInteractionsList();
       alert('Dinâmica salva com sucesso!');
       
-      // Limpa formulário
       document.getElementById('pauseTime').value = '';
       document.getElementById('questionText').value = '';
       renderOptionsForm();
@@ -449,6 +489,7 @@
 
     function removeInteraction(id) {
       interactions = interactions.filter(i => i.id !== id);
+      saveDataToStorage();
       updateInteractionsList();
     }
 
@@ -466,7 +507,6 @@
 
       if (!videoId) return alert('O link do vídeo do YouTube é inválido!');
 
-      // Reseta o estado de execução das perguntas
       interactions.forEach(i => i.triggered = false);
 
       const container = document.getElementById('playerContainer');
@@ -507,8 +547,6 @@
       if (!player || typeof player.getCurrentTime !== 'function') return;
 
       const currentTime = Math.floor(player.getCurrentTime());
-
-      // Procura se existe alguma interação configurada para o segundo atual
       const nextInteraction = interactions.find(i => i.time === currentTime && !i.triggered);
 
       if (nextInteraction) {
@@ -546,7 +584,6 @@
           optionsBox.appendChild(btn);
         });
       } else {
-        // EMBARALHAR opçoes para a dinâmica de ordenação
         studentOrderState = [...data.options].sort(() => Math.random() - 0.5);
         renderOrderList();
       }
@@ -592,7 +629,6 @@
         if (selectedChoiceId === null) return alert('Escolha uma das alternativas!');
         isCorrect = selectedChoiceId === currentInteraction.correctAnswers[0];
       } else {
-        // Verifica se os IDs na lista ordenada do aluno coincidem exatamente com a ordem correta [0, 1, 2...]
         const studentSeq = studentOrderState.map(i => i.id);
         isCorrect = JSON.stringify(studentSeq) === JSON.stringify(currentInteraction.correctAnswers);
       }
