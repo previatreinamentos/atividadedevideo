@@ -2,13 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Plataforma de Vídeos Interativos</title>
+  
+  <!-- Polyfill para suporte a Drag and Drop em telas Touch/Mobile -->
+  <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.0/DragDropTouch.js"></script>
+
   <style>
     * {
       box-sizing: border-box;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
@@ -21,14 +26,14 @@
       min-height: 100vh;
     }
 
-    /* Navegação entre telas */
+    /* Navegação */
     nav {
       width: 100%;
       background-color: #1a73e8;
       display: flex;
       justify-content: center;
-      gap: 15px;
-      padding: 12px;
+      gap: 10px;
+      padding: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
@@ -36,11 +41,12 @@
       background: transparent;
       border: 2px solid white;
       color: white;
-      padding: 8px 20px;
+      padding: 8px 16px;
       border-radius: 20px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
+      font-size: 14px;
     }
 
     nav button.active, nav button:hover {
@@ -51,7 +57,7 @@
     .view-screen {
       width: 100%;
       max-width: 850px;
-      padding: 20px;
+      padding: 15px;
     }
 
     .hidden {
@@ -60,7 +66,7 @@
 
     .card {
       background: #ffffff;
-      padding: 24px;
+      padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
       margin-bottom: 20px;
@@ -69,6 +75,7 @@
     h1, h2 {
       color: #1a73e8;
       margin-top: 0;
+      font-size: 1.25rem;
     }
 
     .form-group {
@@ -80,11 +87,12 @@
       font-weight: 600;
       margin-bottom: 6px;
       color: #333;
+      font-size: 14px;
     }
 
     input[type="text"], input[type="number"], select {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 14px;
@@ -94,17 +102,21 @@
       background: #1a73e8;
       color: white;
       border: none;
-      padding: 10px 16px;
+      padding: 12px 16px;
       border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
       width: 100%;
       margin-top: 10px;
+      font-size: 15px;
+      touch-action: manipulation;
     }
 
     .btn:hover { background: #1557b0; }
     .btn-secondary { background: #5f6368; }
     .btn-danger { background: #d93025; }
+    .btn-start { background: #34a853; font-size: 18px; padding: 15px 30px; width: auto; }
+    .btn-start:hover { background: #2d9247; }
 
     .option-item {
       display: flex;
@@ -117,7 +129,6 @@
       border: 1px solid #e0e0e0;
     }
 
-    /* Lista de interações salvas */
     .interaction-card {
       border-left: 4px solid #1a73e8;
       background: #f8f9fa;
@@ -127,9 +138,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
+      font-size: 14px;
     }
 
-    /* Estilização do Player de Vídeo e Quiz Overlay */
+    /* Player de Vídeo e Overlays */
     .video-wrapper {
       position: relative;
       padding-bottom: 56.25%;
@@ -157,41 +170,50 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 20px;
+      padding: 15px;
       z-index: 10;
+      overflow-y: auto;
     }
 
     .quiz-box {
       background: #202124;
-      padding: 24px;
+      padding: 20px;
       border-radius: 12px;
       width: 100%;
       max-width: 500px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      max-height: 100%;
+      overflow-y: auto;
+    }
+
+    .quiz-box h3 {
+      margin-top: 0;
+      font-size: 1.1rem;
     }
 
     .quiz-options {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      margin: 18px 0;
+      margin: 15px 0;
     }
 
     .quiz-btn {
       background: #3c4043;
       color: white;
-      border: 1px solid #5f6368;
+      border: 2px solid #5f6368;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       text-align: left;
       display: flex;
       justify-content: space-between;
       align-items: center;
       user-select: none;
+      touch-action: none; /* Garante resposta limpa ao toque */
     }
 
-    /* Estilização Drag and Drop */
+    /* Estilização Drag & Drop Mobile e Desktop */
     .drag-item {
       cursor: grab;
       transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
@@ -207,7 +229,8 @@
     .drag-handle {
       margin-left: 10px;
       color: #9aa0a6;
-      font-size: 18px;
+      font-size: 20px;
+      padding: 0 5px;
     }
 
     .quiz-btn:hover { background: #4d5156; }
@@ -219,14 +242,24 @@
       margin-bottom: 12px;
       text-align: center;
       line-height: 1.4;
+      font-size: 14px;
     }
     .feedback.correct { background: #137333; color: #e6f4ea; }
     .feedback.incorrect { background: #c5221f; color: #fce8e6; }
+
+    /* Ajustes específicos para telas mobile pequenas */
+    @media (max-width: 480px) {
+      .view-screen { padding: 10px; }
+      .card { padding: 15px; }
+      .quiz-box { padding: 15px; }
+      .quiz-btn { padding: 10px; font-size: 14px; }
+      .btn-start { font-size: 16px; padding: 12px 24px; }
+    }
   </style>
 </head>
 <body>
 
-  <!-- Menu Superior para Alternar Telas -->
+  <!-- Menu Superior -->
   <nav>
     <button id="navStudent" onclick="switchScreen('student')">🎓 Tela do Aluno</button>
     <button id="navConfig" onclick="switchScreen('config')">⚙️ Configuração</button>
@@ -254,7 +287,7 @@
         <label for="quizType">Tipo de Dinâmica:</label>
         <select id="quizType" onchange="renderOptionsForm()">
           <option value="choice">Múltipla Escolha (1 Opção Correta)</option>
-          <option value="order">Ordenar Sequência (Arrastar na Ordem Correta)</option>
+          <option value="order">Ordenar Sequência (Arrastar e Soltar)</option>
         </select>
       </div>
 
@@ -269,7 +302,6 @@
         <button type="button" class="btn btn-secondary" onclick="addOptionInput()">+ Adicionar Opção</button>
       </div>
 
-      <!-- Campos de Feedback -->
       <div class="form-group" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
         <label for="correctFeedback" style="color: #137333;">Mensagem para Resposta Correta:</label>
         <input type="text" id="correctFeedback" placeholder="Ex: ✨ Parabéns! Você acertou.">
@@ -292,14 +324,19 @@
     </div>
   </div>
 
-  <!-- ================= TELA 2: ALUNO (VÍDEO INTERATIVO) ================= -->
+  <!-- ================= TELA 2: ALUNO ================= -->
   <div id="screenStudent" class="view-screen">
     <div class="card">
       <h2>Vídeo Interativo</h2>
       <div class="video-wrapper">
         <div id="playerContainer"></div>
 
-        <!-- Overlays de Perguntas/Quiz -->
+        <!-- Tela Inicial de Start Manual -->
+        <div id="startOverlay" class="overlay">
+          <button class="btn btn-start" onclick="startStudentVideo()">▶ Iniciar Vídeo</button>
+        </div>
+
+        <!-- Overlay de Quiz/Dinâmicas -->
         <div id="quizOverlay" class="overlay hidden">
           <div class="quiz-box">
             <h3 id="displayQuestion">Pergunta?</h3>
@@ -314,22 +351,17 @@
   </div>
 
   <script>
-    // ESTADO DA APLICAÇÃO
     let interactions = []; 
     let currentInteraction = null;
     let player = null;
     let checkTimer = null;
 
-    // INICIALIZAÇÃO DA APLICAÇÃO
     window.onload = function() {
       renderOptionsForm();
       loadDataFromStorage();
-      
-      // Sempre força o carregamento direto na Tela do Aluno
       switchScreen('student');
     };
 
-    // PERSISTÊNCIA DE DADOS (LOCALSTORAGE)
     function saveDataToStorage() {
       const dataToSave = {
         youtubeUrl: document.getElementById('youtubeUrl').value.trim(),
@@ -350,7 +382,7 @@
             interactions = parsed.interactions;
           }
         } catch (e) {
-          console.error("Erro ao carregar dados do LocalStorage", e);
+          console.error("Erro ao carregar dados", e);
         }
       }
       updateInteractionsList();
@@ -382,7 +414,6 @@
       }
     }
 
-    // FORMULÁRIO DINÂMICO
     function renderOptionsForm() {
       const type = document.getElementById('quizType').value;
       const container = document.getElementById('optionsContainer');
@@ -432,7 +463,6 @@
       }
     }
 
-    // SALVAR INTERAÇÕES (Múltiplas Atividades)
     function saveInteraction() {
       const time = parseInt(document.getElementById('pauseTime').value);
       const type = document.getElementById('quizType').value;
@@ -470,7 +500,6 @@
 
       if (options.length < 2) return alert('Insira pelo menos 2 opções!');
 
-      // Adiciona a nova interação à lista existente
       interactions.push({
         id: Date.now(),
         time: time,
@@ -483,14 +512,12 @@
         triggered: false
       });
 
-      // Ordena a lista de atividades pelo tempo (segundos do vídeo)
       interactions.sort((a, b) => a.time - b.time);
 
       saveDataToStorage();
       updateInteractionsList();
       alert('Dinâmica salva com sucesso!');
-      
-      // Limpeza de campos
+
       document.getElementById('pauseTime').value = '';
       document.getElementById('questionText').value = '';
       document.getElementById('correctFeedback').value = '';
@@ -511,9 +538,9 @@
         div.className = 'interaction-card';
         div.innerHTML = `
           <div>
-            <strong>⏱️ ${item.time}s</strong> - [${item.type === 'choice' ? 'Múltipla Escolha' : 'Ordenar (Arrastar)'}] ${item.question}
+            <strong>⏱️ ${item.time}s</strong> - [${item.type === 'choice' ? 'Múltipla Escolha' : 'Ordenar'}] ${item.question}
           </div>
-          <button class="btn btn-danger" style="width:auto; margin:0;" onclick="removeInteraction(${item.id})">Excluir</button>
+          <button class="btn btn-danger" style="width:auto; margin:0; padding: 6px 12px;" onclick="removeInteraction(${item.id})">Excluir</button>
         `;
         list.appendChild(div);
       });
@@ -525,14 +552,13 @@
       updateInteractionsList();
     }
 
-    // EXTRAÇÃO DE ID DO YOUTUBE
     function extractYouTubeId(url) {
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
       const match = url.match(regExp);
       return (match && match[2].length === 11) ? match[2] : null;
     }
 
-    // TELA DO ALUNO: EXECUÇÃO DO PLAYER
+    // TELA DO ALUNO
     function initStudentPlayer() {
       const url = document.getElementById('youtubeUrl').value.trim();
       const videoId = extractYouTubeId(url);
@@ -541,10 +567,14 @@
 
       interactions.forEach(i => i.triggered = false);
 
+      document.getElementById('startOverlay').classList.remove('hidden');
+      document.getElementById('quizOverlay').classList.add('hidden');
+
       const container = document.getElementById('playerContainer');
+      // Sem autoplay na URL
       container.innerHTML = `
         <iframe id="player" 
-          src="https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&autoplay=1" 
+          src="https://www.youtube-nocookie.com/embed/${videoId}?enablejsapi=1&autoplay=0" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
           referrerpolicy="strict-origin-when-cross-origin" 
           allowfullscreen>
@@ -565,6 +595,13 @@
       player = new YT.Player('player', {
         events: { 'onStateChange': onPlayerStateChange }
       });
+    }
+
+    function startStudentVideo() {
+      document.getElementById('startOverlay').classList.add('hidden');
+      if (player && typeof player.playVideo === 'function') {
+        player.playVideo();
+      }
     }
 
     function onPlayerStateChange(event) {
@@ -589,7 +626,6 @@
       }
     }
 
-    // EXIBIR QUIZ PARA O ALUNO (COM DRAG AND DROP)
     let selectedChoiceId = null;
 
     function showQuizOverlay(data) {
@@ -615,7 +651,6 @@
           optionsBox.appendChild(btn);
         });
       } else {
-        // EMBARALHAR opções para ordenação
         const shuffled = [...data.options].sort(() => Math.random() - 0.5);
         
         shuffled.forEach(opt => {
@@ -636,7 +671,6 @@
       document.getElementById('quizOverlay').classList.remove('hidden');
     }
 
-    // LÓGICA DE ARRASTAR E SOLTAR (DRAG AND DROP)
     function setupDragAndDrop(container) {
       let draggedItem = null;
 
@@ -680,7 +714,6 @@
       }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
-    // AVALIAÇÃO DE RESPOSTA
     function handleQuizSubmit() {
       const feedback = document.getElementById('displayFeedback');
       let isCorrect = false;
@@ -689,7 +722,6 @@
         if (selectedChoiceId === null) return alert('Escolha uma das alternativas!');
         isCorrect = selectedChoiceId === currentInteraction.correctAnswers[0];
       } else {
-        // Coleta a ordem dos IDs arrastados pelo aluno
         const currentElements = document.querySelectorAll('#displayOptions .drag-item');
         const studentSeq = Array.from(currentElements).map(el => parseInt(el.dataset.id));
         isCorrect = JSON.stringify(studentSeq) === JSON.stringify(currentInteraction.correctAnswers);
