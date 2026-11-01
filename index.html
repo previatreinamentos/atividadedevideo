@@ -112,6 +112,8 @@
     .btn:hover { background: #1557b0; }
     .btn-secondary { background: #5f6368; }
     .btn-danger { background: #d93025; }
+    .btn-warning { background: #f29900; color: #fff; }
+    .btn-warning:hover { background: #d68100; }
     .btn-start { background: #34a853; font-size: 17px; padding: 14px 28px; width: auto; }
     .btn-start:hover { background: #2d9247; }
 
@@ -139,14 +141,24 @@
     .interaction-card {
       border-left: 4px solid #1a73e8;
       background: #f8f9fa;
-      padding: 10px;
-      margin-bottom: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
       border-radius: 4px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
       font-size: 13px;
+    }
+
+    .interaction-card.editing-highlight {
+      border-left-color: #f29900;
+      background: #fff8e1;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 6px;
     }
 
     /* Container do Player */
@@ -160,20 +172,17 @@
       box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
 
-    /* Proporção Padrão (Horizontal 16:9) */
     .video-wrapper.ratio-horizontal {
       padding-bottom: 56.25%;
       height: 0;
     }
 
-    /* Proporção Vertical (Shorts/Celular 9:16) */
     .video-wrapper.ratio-vertical {
       max-width: 420px;
       padding-bottom: 150%;
       height: 0;
     }
 
-    /* Modo Tela Cheia */
     .video-wrapper:fullscreen, 
     .video-wrapper:-webkit-full-screen {
       width: 100vw !important;
@@ -194,7 +203,6 @@
       border: 0;
     }
 
-    /* Botão de Tela Cheia */
     .fullscreen-btn {
       position: absolute;
       top: 12px;
@@ -214,23 +222,21 @@
       backdrop-filter: blur(4px);
     }
 
-    /* Overlays Centralizados Sobre o Vídeo */
     .overlay {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.85); /* Fundo escuro uniforme sobre o vídeo */
+      background: rgba(0, 0, 0, 0.85);
       color: white;
       display: flex;
       flex-direction: column;
-      justify-content: center; /* Centralizado no meio da tela */
+      justify-content: center;
       align-items: center;
       padding: 15px;
       z-index: 20;
       overflow-y: auto;
     }
 
-    /* Painel do Questionário Centralizado */
     .quiz-box {
       background: #202124;
       padding: 18px 20px;
@@ -263,7 +269,7 @@
       gap: 8px;
       margin: 10px 0;
       overflow-y: auto;
-      max-height: 220px;
+      max-height: 240px;
       padding-right: 4px;
     }
 
@@ -342,7 +348,7 @@
     
     <div class="card">
       <h2>🔗 Link do Aluno</h2>
-      <p style="font-size: 13px; color: #555;">Copie o link abaixo para abrir em guia anônima ou celular:</p>
+      <p style="font-size: 13px; color: #555;">Link direto para compartilhar:</p>
       <div class="share-link-box">
         <input type="text" id="studentShareUrl" readonly>
         <button class="btn" style="width: auto; margin:0; padding: 8px 14px;" onclick="copyStudentLink()">Copiar Link</button>
@@ -366,8 +372,9 @@
       </div>
     </div>
 
-    <div class="card">
-      <h2>2. Adicionar Dinâmica / Pergunta</h2>
+    <!-- FORMULÁRIO DE CADASTRO E EDIÇÃO -->
+    <div class="card" id="formCard">
+      <h2 id="formTitle">2. Adicionar Dinâmica / Pergunta</h2>
       
       <div class="form-group">
         <label for="pauseTime">Pausar no Segundo:</label>
@@ -403,7 +410,8 @@
         <input type="text" id="incorrectFeedback" placeholder="Ex: ❌ Resposta Incorreta!">
       </div>
 
-      <button type="button" class="btn" onclick="saveInteraction()">💾 Salvar Dinâmica neste Segundo</button>
+      <button type="button" class="btn" id="btnSaveInteraction" onclick="saveInteraction()">💾 Salvar Dinâmica neste Segundo</button>
+      <button type="button" class="btn btn-secondary hidden" id="btnCancelEdit" onclick="cancelEdit()">✖ Cancelar Edição</button>
     </div>
 
     <div class="card">
@@ -472,14 +480,197 @@
   </div>
 
   <script>
-    const REPO_DEFAULT_VIDEO = ""; 
-    const REPO_DEFAULT_INTERACTIONS = []; 
+    const REPO_DEFAULT_VIDEO = "qk5MNyNenMI"; 
+    const REPO_DEFAULT_ORIENTATION = "vertical";
+    const REPO_DEFAULT_INTERACTIONS = [
+      {
+        id: 1793573918973,
+        time: 65,
+        type: "choice",
+        question: "Após fechar a porta do veículo, qual é o primeiro item a ser ajustado?",
+        options: [
+          { id: 0, text: "A) Retrovisor" },
+          { id: 1, text: "B) Soltar o freio de estacionamento (freio de mão)" },
+          { id: 2, text: "C) Banco" },
+          { id: 3, text: "D) Acionar a seta (indicador de direção)" },
+          { id: 4, text: "E) Engrenar a primeira marcha" },
+          { id: 5, text: "F) Pisar na embreagem e freio e dar partida (ligar o veículo)" },
+          { id: 6, text: "G) Cinto de segurança" },
+          { id: 7, text: "H) Verificar o ponto neutro da marcha (ponto morto)" }
+        ],
+        correctAnswers: [2],
+        correctFeedback: "✨ Resposta Correta! Excelente!",
+        incorrectFeedback: "❌ Resposta Incorreta! O primeiro ajuste deve ser a distância e altura do banco.",
+        triggered: false
+      },
+      {
+        id: 1793574414189,
+        time: 78,
+        type: "choice",
+        question: "Após ajustar o banco, qual o próximo item a ser regulado?",
+        options: [
+          { id: 0, text: "A) Pisar na embreagem e freio e dar partida (ligar o veículo)" },
+          { id: 1, text: "B) Engrenar a primeira marcha" },
+          { id: 2, text: "C) Verificar o ponto neutro da marcha (ponto morto)" },
+          { id: 3, text: "D) Retrovisor" },
+          { id: 4, text: "E) Cinto de segurança" },
+          { id: 5, text: "F) Soltar o freio de estacionamento (freio de mão)" },
+          { id: 6, text: "G) Banco" },
+          { id: 7, text: "H) Acionar a seta (indicador de direção)" }
+        ],
+        correctAnswers: [3],
+        correctFeedback: "✨ Resposta Correta! Excelente!",
+        incorrectFeedback: "❌ Resposta Incorreta! Após o banco, regulam-se os espelhos retrovisores.",
+        triggered: false
+      },
+      {
+        id: 1793574531756,
+        time: 88,
+        type: "choice",
+        question: "Após ajustar os retrovisores, qual o próximo item de segurança a colocar?",
+        options: [
+          { id: 0, text: "A) Cinto de segurança" },
+          { id: 1, text: "B) Acionar a seta (indicador de direção)" },
+          { id: 2, text: "C) Engrenar a primeira marcha" },
+          { id: 3, text: "D) Banco" },
+          { id: 4, text: "E) Verificar o ponto neutro da marcha (ponto morto)" },
+          { id: 5, text: "F) Soltar o freio de estacionamento (freio de mão)" },
+          { id: 6, text: "G) Retrovisor" },
+          { id: 7, text: "H) Pisar na embreagem e freio e dar partida (ligar o veículo)" }
+        ],
+        correctAnswers: [0],
+        correctFeedback: "✨ Resposta Correta! Excelente!",
+        incorrectFeedback: "❌ Resposta Incorreta! O cinto de segurança deve ser afivelado logo após os ajustes preliminares.",
+        triggered: false
+      },
+      {
+        id: 1793574794611,
+        time: 95,
+        type: "choice",
+        question: "Com banco, retrovisores e cinto ajustados, o que deve ser verificado antes da partida?",
+        options: [
+          { id: 0, text: "A) Engrenar a primeira marcha" },
+          { id: 1, text: "B) Banco" },
+          { id: 2, text: "C) Soltar o freio de estacionamento (freio de mão)" },
+          { id: 3, text: "D) Verificar o ponto neutro da marcha (ponto morto)" },
+          { id: 4, text: "E) Cinto de segurança" },
+          { id: 5, text: "F) Pisar na embreagem e freio e dar partida (ligar o veículo)" },
+          { id: 6, text: "G) Retrovisor" },
+          { id: 7, text: "H) Acionar a seta (indicador de direção)" }
+        ],
+        correctAnswers: [3],
+        correctFeedback: "✨ Resposta Correta! Excelente!",
+        incorrectFeedback: "❌ Resposta Incorreta! Sempre verifique se o câmbio está em ponto neutro (ponto morto).",
+        triggered: false
+      },
+      {
+        id: 1793574903856,
+        time: 98,
+        type: "choice",
+        question: "Após conferir o ponto neutro, qual o próximo procedimento para ligar o veículo?",
+        options: [
+          { id: 0, text: "A) Soltar o freio de estacionamento (freio de mão)" },
+          { id: 1, text: "B) Pisar na embreagem e freio e dar partida (ligar o veículo)" },
+          { id: 2, text: "C) Retrovisor" },
+          { id: 3, text: "D) Banco" },
+          { id: 4, text: "E) Engrenar a primeira marcha" },
+          { id: 5, text: "F) Acionar a seta (indicador de direção)" },
+          { id: 6, text: "G) Verificar o ponto neutro da marcha (ponto morto)" },
+          { id: 7, text: "H) Cinto de segurança" }
+        ],
+        correctAnswers: [1],
+        correctFeedback: "✨ Resposta Correta! Excelente!",
+        incorrectFeedback: "❌ Resposta Incorreta! Deve-se pisar no freio e embreagem ao dar a partida.",
+        triggered: false
+      },
+      {
+        id: 1793575029003,
+        time: 100,
+        type: "choice",
+        question: "Com o veículo ligado, qual é a próxima ação com o câmbio?",
+        options: [
+          { id: 0, text: "A) Banco" },
+          { id: 1, text: "B) Retrovisor" },
+          { id: 2, text: "C) Acionar a seta (indicador de direção)" },
+          { id: 3, text: "D) Cinto de segurança" },
+          { id: 4, text: "E) Engrenar a primeira marcha" },
+          { id: 5, text: "F) Soltar o freio de estacionamento (freio de mão)" },
+          { id: 6, text: "G) Pisar na embreagem e freio e dar partida (ligar o veículo)" },
+          { id: 7, text: "H) Verificar o ponto neutro da marcha (ponto morto)" }
+        ],
+        correctAnswers: [4],
+        correctFeedback: "✨ Resposta Correta! Excelente!",
+        incorrectFeedback: "❌ Resposta Incorreta! Com o motor ligado, engrena-se a primeira marcha para sair.",
+        triggered: false
+      },
+      {
+        id: 1793575190058,
+        time: 104,
+        type: "choice",
+        question: "Após engrenar a primeira marcha, o que deve ser feito para sinalizar a saída?",
+        options: [
+          { id: 0, text: "A) Verificar o ponto neutro da marcha (ponto morto)" },
+          { id: 1, text: "B) Pisar na embreagem e freio e dar partida (ligar o veículo)" },
+          { id: 2, text: "C) Acionar a seta (indicador de direção)" },
+          { id: 3, text: "D) Retrovisor" },
+          { id: 4, text: "E) Banco" },
+          { id: 5, text: "F) Soltar o freio de estacionamento (freio de mão)" },
+          { id: 6, text: "G) Engrenar a primeira marcha" },
+          { id: 7, text: "H) Cinto de segurança" }
+        ],
+        correctAnswers: [2],
+        correctFeedback: "✨ Resposta Correta! Excelente!",
+        incorrectFeedback: "❌ Resposta Incorreta! É obrigatório sinalizar com a seta a intenção de movimento.",
+        triggered: false
+      },
+      {
+        id: 1793575309082,
+        time: 105,
+        type: "choice",
+        question: "Após acionar a seta e antes de sair, o que resta soltar?",
+        options: [
+          { id: 0, text: "A) Verificar o ponto neutro da marcha (ponto morto)" },
+          { id: 1, text: "B) Pisar na embreagem e freio e dar partida (ligar o veículo)" },
+          { id: 2, text: "C) Acionar a seta (indicador de direção)" },
+          { id: 3, text: "D) Retrovisor" },
+          { id: 4, text: "E) Banco" },
+          { id: 5, text: "F) Soltar o freio de estacionamento (freio de mão)" },
+          { id: 6, text: "G) Engrenar a primeira marcha" },
+          { id: 7, text: "H) Cinto de segurança" }
+        ],
+        correctAnswers: [5],
+        correctFeedback: "✨ Resposta Correta! Excelente!",
+        incorrectFeedback: "❌ Resposta Incorreta! Solte o freio de mão logo antes de iniciar o deslocamento.",
+        triggered: false
+      },
+      {
+        id: 1793575660537,
+        time: 112,
+        type: "order",
+        question: "Desafio de Sequência: Ordene as etapas abaixo na sequência exata em que devem ser realizadas, do primeiro ajuste até o momento final de liberação do veículo para a saída:",
+        options: [
+          { id: 0, text: "Banco (ajuste de distância, altura e encosto)" },
+          { id: 1, text: "Retrovisores (interno e externos)" },
+          { id: 2, text: "Cinto de segurança" },
+          { id: 3, text: "Verificar o ponto neutro da marcha (ponto morto)" },
+          { id: 4, text: "Pisar na embreagem e freio e dar partida (ligar o veículo)" },
+          { id: 5, text: "Engrenar a primeira marcha" },
+          { id: 6, text: "Acionar a seta (indicador de direção)" },
+          { id: 7, text: "Soltar o freio de estacionamento (freio de mão)" }
+        ],
+        correctAnswers: [0, 1, 2, 3, 4, 5, 6, 7],
+        correctFeedback: "✨ Resposta Correta! Excelente!",
+        incorrectFeedback: "❌ Resposta Incorreta!",
+        triggered: false
+      }
+    ];
 
     let interactions = []; 
     let currentInteraction = null;
+    let editingInteractionId = null; // Variável para controlar se estamos editando
     let player = null;
     let checkTimer = null;
-    let videoOrientation = "vertical";
+    let videoOrientation = REPO_DEFAULT_ORIENTATION;
 
     let score = {
       correct: 0,
@@ -564,53 +755,25 @@
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
       const viewMode = urlParams.get('view');
-      const paramVideo = urlParams.get('v');
-      const paramData = urlParams.get('d');
-      const paramOrient = urlParams.get('o');
 
-      let loaded = false;
+      document.getElementById('youtubeUrl').value = REPO_DEFAULT_VIDEO;
+      document.getElementById('videoOrientation').value = REPO_DEFAULT_ORIENTATION;
+      videoOrientation = REPO_DEFAULT_ORIENTATION;
+      interactions = JSON.parse(JSON.stringify(REPO_DEFAULT_INTERACTIONS));
 
-      if (paramOrient) {
-        videoOrientation = paramOrient;
-        document.getElementById('videoOrientation').value = paramOrient;
-      }
-
-      if (paramVideo) {
-        document.getElementById('youtubeUrl').value = paramVideo;
-        loaded = true;
-      }
-      if (paramData) {
+      const saved = localStorage.getItem(getRepoStorageKey());
+      if (saved) {
         try {
-          interactions = JSON.parse(decodeURIComponent(escape(atob(paramData))));
-          loaded = true;
-        } catch(e) {
-          console.error("Erro ao decodificar dados da URL", e);
-        }
-      }
-
-      if (!loaded) {
-        const saved = localStorage.getItem(getRepoStorageKey());
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (parsed.youtubeUrl) {
-              document.getElementById('youtubeUrl').value = parsed.youtubeUrl;
-              loaded = true;
-            }
-            if (parsed.orientation) {
-              videoOrientation = parsed.orientation;
-              document.getElementById('videoOrientation').value = parsed.orientation;
-            }
-            if (Array.isArray(parsed.interactions)) {
-              interactions = parsed.interactions;
-            }
-          } catch(e) {}
-        }
-      }
-
-      if (!loaded && REPO_DEFAULT_VIDEO) {
-        document.getElementById('youtubeUrl').value = REPO_DEFAULT_VIDEO;
-        interactions = REPO_DEFAULT_INTERACTIONS;
+          const parsed = JSON.parse(saved);
+          if (parsed.youtubeUrl) document.getElementById('youtubeUrl').value = parsed.youtubeUrl;
+          if (parsed.orientation) {
+            videoOrientation = parsed.orientation;
+            document.getElementById('videoOrientation').value = parsed.orientation;
+          }
+          if (Array.isArray(parsed.interactions) && parsed.interactions.length > 0) {
+            interactions = parsed.interactions;
+          }
+        } catch(e) {}
       }
 
       applyOrientation();
@@ -631,25 +794,11 @@
 
     function updateShareLink() {
       const baseUrl = window.location.href.split('?')[0];
-      const videoId = extractYouTubeId(document.getElementById('youtubeUrl').value);
-      
-      if (!videoId) {
-        document.getElementById('studentShareUrl').value = 'Informe um vídeo válido para gerar o link.';
-        return;
-      }
-
-      const jsonInteractions = JSON.stringify(interactions);
-      const encodedInteractions = btoa(unescape(encodeURIComponent(jsonInteractions)));
-
-      document.getElementById('studentShareUrl').value = `${baseUrl}?view=student&v=${videoId}&o=${videoOrientation}&d=${encodeURIComponent(encodedInteractions)}`;
+      document.getElementById('studentShareUrl').value = `${baseUrl}?view=student`;
     }
 
     function copyStudentLink() {
       const copyText = document.getElementById('studentShareUrl');
-      if (!copyText.value.startsWith('http')) {
-        alert("Insira um link de vídeo válido primeiro!");
-        return;
-      }
       copyText.select();
       document.execCommand("copy");
       alert("Link copiado com sucesso!");
@@ -666,13 +815,16 @@
     }
 
     function clearAllData() {
-      if (confirm("Tem certeza que deseja apagar os dados configurados para este repositório?")) {
+      if (confirm("Deseja restaurar as configurações originais deste repositório?")) {
         localStorage.removeItem(getRepoStorageKey());
-        interactions = [];
-        document.getElementById('youtubeUrl').value = '';
+        document.getElementById('youtubeUrl').value = REPO_DEFAULT_VIDEO;
+        document.getElementById('videoOrientation').value = REPO_DEFAULT_ORIENTATION;
+        interactions = JSON.parse(JSON.stringify(REPO_DEFAULT_INTERACTIONS));
+        cancelEdit();
+        applyOrientation();
         updateInteractionsList();
         updateShareLink();
-        alert("Dados deste repositório limpos!");
+        alert("Configurações originais restauradas!");
       }
     }
 
@@ -710,22 +862,22 @@
       }
     }
 
-    function createChoiceInput(idx, isChecked) {
+    function createChoiceInput(idx, isChecked, value = '') {
       const div = document.createElement('div');
       div.className = 'option-item';
       div.innerHTML = `
         <input type="radio" name="correctIndex" value="${idx}" ${isChecked ? 'checked' : ''}>
-        <input type="text" class="opt-text" placeholder="Opção ${idx + 1}">
+        <input type="text" class="opt-text" placeholder="Opção ${idx + 1}" value="${value.replace(/"/g, '&quot;')}">
       `;
       return div;
     }
 
-    function createOrderInput(idx) {
+    function createOrderInput(idx, value = '') {
       const div = document.createElement('div');
       div.className = 'option-item';
       div.innerHTML = `
         <span style="font-weight:bold">${idx + 1}º</span>
-        <input type="text" class="opt-text" placeholder="Passo/Item ${idx + 1}">
+        <input type="text" class="opt-text" placeholder="Passo/Item ${idx + 1}" value="${value.replace(/"/g, '&quot;')}">
       `;
       return div;
     }
@@ -740,6 +892,66 @@
       } else {
         container.appendChild(createOrderInput(idx));
       }
+    }
+
+    // ========================================================
+    // CARREGAR DADOS NO FORMULÁRIO PARA EDIÇÃO
+    // ========================================================
+    function editInteraction(id) {
+      const item = interactions.find(i => i.id === id);
+      if (!item) return;
+
+      editingInteractionId = id;
+
+      document.getElementById('pauseTime').value = item.time;
+      document.getElementById('quizType').value = item.type;
+      document.getElementById('questionText').value = item.question;
+      document.getElementById('correctFeedback').value = item.correctFeedback || '';
+      document.getElementById('incorrectFeedback').value = item.incorrectFeedback || '';
+
+      const container = document.getElementById('optionsContainer');
+      const label = document.getElementById('optionsLabel');
+      container.innerHTML = '';
+
+      if (item.type === 'choice') {
+        label.innerText = 'Alternativas (Marque a correta no botão redondo):';
+        item.options.forEach((opt, idx) => {
+          const isChecked = item.correctAnswers.includes(opt.id);
+          container.appendChild(createChoiceInput(idx, isChecked, opt.text));
+        });
+      } else {
+        label.innerText = 'Insira os itens NA ORDEM CORRETA (eles serão embaralhados para o aluno):';
+        item.options.forEach((opt, idx) => {
+          container.appendChild(createOrderInput(idx, opt.text));
+        });
+      }
+
+      // Atualiza visual dos botões
+      document.getElementById('formTitle').innerText = "✏️ Editar Dinâmica";
+      const btnSave = document.getElementById('btnSaveInteraction');
+      btnSave.innerText = "💾 Atualizar Dinâmica";
+      btnSave.className = "btn btn-warning";
+      document.getElementById('btnCancelEdit').classList.remove('hidden');
+
+      // Rola a tela até o formulário
+      document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+      updateInteractionsList();
+    }
+
+    function cancelEdit() {
+      editingInteractionId = null;
+      document.getElementById('formTitle').innerText = "2. Adicionar Dinâmica / Pergunta";
+      const btnSave = document.getElementById('btnSaveInteraction');
+      btnSave.innerText = "💾 Salvar Dinâmica neste Segundo";
+      btnSave.className = "btn";
+      document.getElementById('btnCancelEdit').classList.add('hidden');
+
+      document.getElementById('pauseTime').value = '';
+      document.getElementById('questionText').value = '';
+      document.getElementById('correctFeedback').value = '';
+      document.getElementById('incorrectFeedback').value = '';
+      renderOptionsForm();
+      updateInteractionsList();
     }
 
     function saveInteraction() {
@@ -779,29 +991,48 @@
 
       if (options.length < 2) return alert('Insira pelo menos 2 opções!');
 
-      interactions.push({
-        id: Date.now(),
-        time: time,
-        type: type,
-        question: question,
-        options: options,
-        correctAnswers: correctAnswers,
-        correctFeedback: correctFeedback,
-        incorrectFeedback: incorrectFeedback,
-        triggered: false
-      });
+      if (editingInteractionId !== null) {
+        // Atualiza a dinâmica existente
+        const index = interactions.findIndex(i => i.id === editingInteractionId);
+        if (index !== -1) {
+          interactions[index] = {
+            id: editingInteractionId,
+            time: time,
+            type: type,
+            question: question,
+            options: options,
+            correctAnswers: correctAnswers,
+            correctFeedback: correctFeedback,
+            incorrectFeedback: incorrectFeedback,
+            triggered: false
+          };
+        }
+        alert('Dinâmica atualizada com sucesso!');
+        cancelEdit();
+      } else {
+        // Cria uma nova dinâmica
+        interactions.push({
+          id: Date.now(),
+          time: time,
+          type: type,
+          question: question,
+          options: options,
+          correctAnswers: correctAnswers,
+          correctFeedback: correctFeedback,
+          incorrectFeedback: incorrectFeedback,
+          triggered: false
+        });
+        alert('Dinâmica salva com sucesso!');
+        document.getElementById('pauseTime').value = '';
+        document.getElementById('questionText').value = '';
+        document.getElementById('correctFeedback').value = '';
+        document.getElementById('incorrectFeedback').value = '';
+        renderOptionsForm();
+      }
 
       interactions.sort((a, b) => a.time - b.time);
-
       saveDataToStorage();
       updateInteractionsList();
-      alert('Dinâmica salva com sucesso!');
-
-      document.getElementById('pauseTime').value = '';
-      document.getElementById('questionText').value = '';
-      document.getElementById('correctFeedback').value = '';
-      document.getElementById('incorrectFeedback').value = '';
-      renderOptionsForm();
     }
 
     function updateInteractionsList() {
@@ -813,22 +1044,32 @@
 
       list.innerHTML = '';
       interactions.forEach(item => {
+        const isEditing = item.id === editingInteractionId;
         const div = document.createElement('div');
-        div.className = 'interaction-card';
+        div.className = `interaction-card ${isEditing ? 'editing-highlight' : ''}`;
         div.innerHTML = `
           <div>
             <strong>⏱️ ${item.time}s</strong> - [${item.type === 'choice' ? 'Múltipla Escolha' : 'Ordenar'}] ${item.question}
+            ${isEditing ? '<span style="color: #d68100; font-weight: bold; margin-left: 6px;">(Em Edição)</span>' : ''}
           </div>
-          <button class="btn btn-danger" style="width:auto; margin:0; padding: 4px 8px; font-size: 12px;" onclick="removeInteraction(${item.id})">Excluir</button>
+          <div class="action-buttons">
+            <button class="btn btn-warning" style="width:auto; margin:0; padding: 4px 8px; font-size: 12px;" onclick="editInteraction(${item.id})">✏️ Editar</button>
+            <button class="btn btn-danger" style="width:auto; margin:0; padding: 4px 8px; font-size: 12px;" onclick="removeInteraction(${item.id})">Excluir</button>
+          </div>
         `;
         list.appendChild(div);
       });
     }
 
     function removeInteraction(id) {
-      interactions = interactions.filter(i => i.id !== id);
-      saveDataToStorage();
-      updateInteractionsList();
+      if (confirm("Deseja realmente excluir esta dinâmica?")) {
+        if (editingInteractionId === id) {
+          cancelEdit();
+        }
+        interactions = interactions.filter(i => i.id !== id);
+        saveDataToStorage();
+        updateInteractionsList();
+      }
     }
 
     function initStudentPlayer() {
