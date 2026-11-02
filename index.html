@@ -178,8 +178,8 @@
     }
 
     .video-wrapper.ratio-vertical {
-      max-width: 420px;
-      padding-bottom: 150%;
+      max-width: 440px;
+      padding-bottom: 155%;
       height: 0;
     }
 
@@ -226,69 +226,81 @@
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.88);
       color: white;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 15px;
+      padding: 10px;
       z-index: 20;
-      overflow-y: auto;
+      overflow: hidden;
     }
 
+    /* Caixa da Pergunta Estendida */
     .quiz-box {
       background: #202124;
-      padding: 18px 20px;
+      padding: 14px 16px;
       border-radius: 12px;
-      width: 100%;
+      width: 95%;
       max-width: 480px;
-      max-height: 90%;
+      max-height: 94%; /* Aproveita 94% da altura da tela no celular */
       box-shadow: 0 8px 30px rgba(0,0,0,0.8);
       display: flex;
       flex-direction: column;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
     .quiz-header {
-      margin-bottom: 12px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
     }
 
     .quiz-header h3 {
-      font-size: 16px;
-      line-height: 1.4;
+      font-size: 15px;
+      line-height: 1.35;
       margin: 0;
       color: #fff;
       text-align: left;
     }
 
+    /* Lista de Alternativas com Barra de Rolagem Confortável */
     .quiz-options {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin: 10px 0;
+      gap: 6px;
+      margin: 8px 0;
       overflow-y: auto;
-      max-height: 240px;
-      padding-right: 4px;
+      flex-grow: 1; /* Ocupa todo o espaço vertical disponível */
+      padding-right: 6px;
+      -webkit-overflow-scrolling: touch;
     }
 
+    /* Barra de rolagem mais larga e fácil de ver/arrastar */
     .quiz-options::-webkit-scrollbar {
-      width: 5px;
+      width: 8px;
+    }
+    .quiz-options::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
     }
     .quiz-options::-webkit-scrollbar-thumb {
-      background: #555;
-      border-radius: 4px;
+      background: #8ab4f8;
+      border-radius: 6px;
+    }
+    .quiz-options::-webkit-scrollbar-thumb:hover {
+      background: #aecbfa;
     }
 
     .quiz-btn {
-      background: #3c4043;
+      background: #303134;
       color: #f1f3f4;
-      border: 2px solid #5f6368;
-      padding: 10px 14px;
-      border-radius: 8px;
+      border: 1.5px solid #5f6368;
+      padding: 8px 12px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
+      line-height: 1.25;
       text-align: left;
       display: flex;
       justify-content: space-between;
@@ -296,26 +308,32 @@
       user-select: none;
       touch-action: none;
       transition: all 0.15s;
+      flex-shrink: 0;
     }
 
     .quiz-btn:hover {
-      background: #494e52;
+      background: #3c4043;
     }
 
     .drag-item { cursor: grab; }
     .drag-item.dragging { opacity: 0.5; background: #1a73e8; }
-    .drag-handle { color: #9aa0a6; font-size: 18px; }
+    .drag-handle { color: #9aa0a6; font-size: 16px; margin-left: 8px; }
 
     .feedback {
-      padding: 10px;
+      padding: 8px;
       border-radius: 6px;
       font-weight: bold;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
       text-align: center;
-      font-size: 13px;
+      font-size: 12px;
+      flex-shrink: 0;
     }
     .feedback.correct { background: #137333; color: #e6f4ea; }
     .feedback.incorrect { background: #c5221f; color: #fce8e6; }
+
+    #btnAction, #btnContinue {
+      flex-shrink: 0;
+    }
 
     .score-badge {
       font-size: 2.8rem;
@@ -480,6 +498,8 @@
   </div>
 
   <script>
+    // Dados padrão para o repositório "atividadedevideo"
+    const DEFAULT_REPO_NAME = "atividadedevideo";
     const REPO_DEFAULT_VIDEO = "qk5MNyNenMI"; 
     const REPO_DEFAULT_ORIENTATION = "vertical";
     const REPO_DEFAULT_INTERACTIONS = [
@@ -667,16 +687,21 @@
 
     let interactions = []; 
     let currentInteraction = null;
-    let editingInteractionId = null; // Variável para controlar se estamos editando
+    let editingInteractionId = null;
     let player = null;
     let checkTimer = null;
-    let videoOrientation = REPO_DEFAULT_ORIENTATION;
+    let videoOrientation = "vertical";
 
     let score = {
       correct: 0,
       incorrect: 0,
       total: 0
     };
+
+    function getCurrentRepoName() {
+      const parts = window.location.pathname.split('/').filter(p => p && p !== 'index.html');
+      return parts.length > 0 ? parts[0] : 'root';
+    }
 
     function applyOrientation() {
       videoOrientation = document.getElementById('videoOrientation').value;
@@ -718,8 +743,7 @@
     });
 
     function getRepoStorageKey() {
-      const cleanPath = window.location.pathname.replace(/\/index\.html$/i, '').replace(/\/$/, '');
-      return 'yt_quiz_data_' + (cleanPath || 'root');
+      return 'yt_quiz_data_' + getCurrentRepoName();
     }
 
     function extractYouTubeId(url) {
@@ -755,12 +779,23 @@
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
       const viewMode = urlParams.get('view');
+      const repoName = getCurrentRepoName();
 
-      document.getElementById('youtubeUrl').value = REPO_DEFAULT_VIDEO;
-      document.getElementById('videoOrientation').value = REPO_DEFAULT_ORIENTATION;
-      videoOrientation = REPO_DEFAULT_ORIENTATION;
-      interactions = JSON.parse(JSON.stringify(REPO_DEFAULT_INTERACTIONS));
+      // Se for o repositório principal atual ou ambiente local, carrega os dados completos
+      if (repoName === DEFAULT_REPO_NAME || repoName === 'root' || window.location.hostname === 'localhost') {
+        document.getElementById('youtubeUrl').value = REPO_DEFAULT_VIDEO;
+        document.getElementById('videoOrientation').value = REPO_DEFAULT_ORIENTATION;
+        videoOrientation = REPO_DEFAULT_ORIENTATION;
+        interactions = JSON.parse(JSON.stringify(REPO_DEFAULT_INTERACTIONS));
+      } else {
+        // Se você duplicar para um repositório NOVO, ele inicia limpo
+        document.getElementById('youtubeUrl').value = '';
+        document.getElementById('videoOrientation').value = 'vertical';
+        videoOrientation = 'vertical';
+        interactions = [];
+      }
 
+      // Lê customizações salvas pelo usuário no LocalStorage deste repositório específico
       const saved = localStorage.getItem(getRepoStorageKey());
       if (saved) {
         try {
@@ -815,16 +850,23 @@
     }
 
     function clearAllData() {
-      if (confirm("Deseja restaurar as configurações originais deste repositório?")) {
+      if (confirm("Deseja apagar ou resetar os dados deste repositório?")) {
         localStorage.removeItem(getRepoStorageKey());
-        document.getElementById('youtubeUrl').value = REPO_DEFAULT_VIDEO;
-        document.getElementById('videoOrientation').value = REPO_DEFAULT_ORIENTATION;
-        interactions = JSON.parse(JSON.stringify(REPO_DEFAULT_INTERACTIONS));
+        const repoName = getCurrentRepoName();
+        if (repoName === DEFAULT_REPO_NAME || repoName === 'root') {
+          document.getElementById('youtubeUrl').value = REPO_DEFAULT_VIDEO;
+          document.getElementById('videoOrientation').value = REPO_DEFAULT_ORIENTATION;
+          interactions = JSON.parse(JSON.stringify(REPO_DEFAULT_INTERACTIONS));
+        } else {
+          document.getElementById('youtubeUrl').value = '';
+          document.getElementById('videoOrientation').value = 'vertical';
+          interactions = [];
+        }
         cancelEdit();
         applyOrientation();
         updateInteractionsList();
         updateShareLink();
-        alert("Configurações originais restauradas!");
+        alert("Configurações atualizadas!");
       }
     }
 
@@ -894,9 +936,6 @@
       }
     }
 
-    // ========================================================
-    // CARREGAR DADOS NO FORMULÁRIO PARA EDIÇÃO
-    // ========================================================
     function editInteraction(id) {
       const item = interactions.find(i => i.id === id);
       if (!item) return;
@@ -926,14 +965,12 @@
         });
       }
 
-      // Atualiza visual dos botões
       document.getElementById('formTitle').innerText = "✏️ Editar Dinâmica";
       const btnSave = document.getElementById('btnSaveInteraction');
       btnSave.innerText = "💾 Atualizar Dinâmica";
       btnSave.className = "btn btn-warning";
       document.getElementById('btnCancelEdit').classList.remove('hidden');
 
-      // Rola a tela até o formulário
       document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
       updateInteractionsList();
     }
@@ -992,7 +1029,6 @@
       if (options.length < 2) return alert('Insira pelo menos 2 opções!');
 
       if (editingInteractionId !== null) {
-        // Atualiza a dinâmica existente
         const index = interactions.findIndex(i => i.id === editingInteractionId);
         if (index !== -1) {
           interactions[index] = {
@@ -1010,7 +1046,6 @@
         alert('Dinâmica atualizada com sucesso!');
         cancelEdit();
       } else {
-        // Cria uma nova dinâmica
         interactions.push({
           id: Date.now(),
           time: time,
@@ -1175,10 +1210,10 @@
           btn.onclick = () => {
             document.querySelectorAll('.quiz-btn').forEach(b => {
               b.style.borderColor = '#5f6368';
-              b.style.background = '#3c4043';
+              b.style.background = '#303134';
             });
-            btn.style.borderColor = '#1a73e8';
-            btn.style.background = '#1557b0';
+            btn.style.borderColor = '#8ab4f8';
+            btn.style.background = '#1a73e8';
             selectedChoiceId = opt.id;
           };
           optionsBox.appendChild(btn);
